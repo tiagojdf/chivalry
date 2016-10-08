@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./node_modules/rollup/bin/rollup src/main.js --output dist/bundle.js"
+    "build": "rollup src/main.js --output dist/bundle.js",
+    "watch": "./node_modules/rollup/bin/rollup -w --input src/main.js --output dist/bundle.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {},
   "devDependencies": {
     "eslint": "^3.6.1",
-    "rollup": "^0.36.1"
+    "rollup": "^0.36.1",
+    "rollup-watch": "^2.5.0"
   }
 }
