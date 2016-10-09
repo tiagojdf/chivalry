@@ -46,7 +46,6 @@ import Attack from './model/Attack'
 import lineIntersect from './tools/lineIntersect'
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
-const ongoingTouches = new Array()
 // const enemyImage = new Image()
 // enemyImage.src = './assets/enemy.jpg';
 let  attacks = []
@@ -62,13 +61,16 @@ class Game {
     this.enemy = new Character('enemy')
     this.enemy.timer = 2
     this.enemy.speed = 1000
+    this.ongoingTouches = []
   }
   startup(){
-    this.canvas.addEventListener('touchstart', (evt) => handleStart(this.enemy, evt), false)
+    this.canvas.addEventListener('touchstart', handleStart.bind(this), false)
     this.canvas.addEventListener('touchend', handleEnd.bind(this), false)
     this.canvas.addEventListener('touchcancel', handleCancel.bind(this), false)
   }
   launch(currentTime){
+    if (this.state === 'lost') return
+
     if (this.previousTime) {
       this.update((currentTime - this.previousTime) / 1000)
     }
@@ -111,13 +113,15 @@ class Game {
         break
       }
     }
+    if(this.player.hp <= 0){
+      this.gameOver()
+    }
     // Enemy AI
     if (this.enemy.timer > 0) {
       this.enemy.timer -= dt
       return
     }
     // Add enemy attack
-
     const attack = new Attack(this.player)
     attack.updateStartPoint({
       pageX: 50,
@@ -131,7 +135,30 @@ class Game {
     attacks.push(attack)
     this.enemy.timer = 5
   }
+  restart(){
+    this.player.hp = 100
+    this.enemy.hp = 100
+    this.state = undefined
+    this.accumulator = 0
+    this.previousTime = 0
+    this.ongoingTouches = []
+
+    this.launch()
+  }
+  gameOver(){
+    this.state = 'lost'
+  }
+  // Drawing methods
   draw(){
+    if (this.state === 'lost') {
+      this.context.textAlign = 'center'
+      this.context.font = '48px serif'
+      this.context.fillText('Game Over', this.canvas.width / 2, this.canvas.height / 2)
+      this.context.font = 'bold 24px serif'
+      this.context.fillText('Touch the screen to restart', this.canvas.width/2, this.canvas.height/2 + 50)
+      return
+    }
+
     this.context.clearRect(0, 0, canvas.width, canvas.height)
     this.context.drawImage(enemyImage, 400, 0, 540, 960, 0, 0, 320, 568)
 
@@ -183,28 +210,29 @@ const game = new Game(canvas, ctx)
 game.startup()
 game.launch()
 
-function handleStart(target, evt) {
+function handleStart(evt) {
+  if (this.state === 'lost') this.restart()
+
   var touches = evt.changedTouches
 
   for (var i = 0; i < touches.length; i++) {
-    ongoingTouches.push(startAttack(target, touches[i]))
+    this.ongoingTouches.push(startAttack(this.enemy, touches[i]))
   }
 }
 
 function handleEnd(evt) {
   evt.preventDefault()
-  var touches = evt.changedTouches
+  const touches = evt.changedTouches
 
-  for (var i = 0; i < touches.length; i++) {
-    var idx = ongoingTouchIndexById(touches[i].identifier)
+  for (let i = 0; i < touches.length; i++) {
+    var idx = ongoingTouchIndexById.bind(this)(touches[i].identifier)
         // var imageData = ctx.getImageData(0,0,canvas.width,canvas.height) // http://stackoverflow.com/questions/7365436/erasing-previously-drawn-lines-on-an-html5-canvas
-
     if (idx >= 0) {
 
-      const attack = updateTouch(ongoingTouches[idx], touches[i])
+      const attack = updateTouch(this.ongoingTouches[idx], touches[i])
       attack.alpha = 1
       attacks.push(attack)
-      ongoingTouches.splice(idx, 1)  // remove it; we're done
+      this.ongoingTouches.splice(idx, 1)  // remove it; we're done
     } else {
       console.error('can\'t figure out which touch to end')
     }
@@ -216,7 +244,7 @@ function handleCancel(evt) {
   var touches = evt.changedTouches
 
   for (var i = 0; i < touches.length; i++) {
-    ongoingTouches.splice(i, 1)  // remove it; we're done
+    this.ongoingTouches.splice(i, 1)  // remove it; we're done
   }
 }
 
@@ -236,8 +264,8 @@ function updateTouch(attack, touch) {
 }
 
 function ongoingTouchIndexById(idToFind) {
-  for (var i = 0; i < ongoingTouches.length; i++) {
-    var id = ongoingTouches[i].identifier
+  for (var i = 0; i < this.ongoingTouches.length; i++) {
+    var id = this.ongoingTouches[i].identifier
 
     if (id == idToFind) {
       return i
