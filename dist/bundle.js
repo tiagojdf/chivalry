@@ -14,9 +14,13 @@ class Character{
   }
 }
 
+/*
+ * Attacks can be scheduled, active, blocked, success
+ */
 class Attack{
   constructor(target){
     this.target = target
+    this.status = 'scheduled'
     this.alpha = 1
     this.start = {
       x: undefined,
@@ -45,20 +49,50 @@ class Attack{
   get duration(){
     return this.delta.time
   }
-  updateStartPoint(touch){
+  updateStartPoint(touch, time){
     this.start = {
       x: touch.pageX,
       y: touch.pageY,
-      time: new Date,
+      time: time || new Date,
     }
   }
-  updateEndPoint(touch){
+  updateEndPoint(touch, time){
     this.end = {
       x: touch.pageX,
       y: touch.pageY,
-      time: new Date,
+      time: time || new Date,
     }
   }
+}
+
+function lineIntersect(line1, line2) {
+  var x=((line1.start.x*line1.end.y-line1.start.y*line1.end.x)*(line2.start.x-line2.end.x)-(line1.start.x-line1.end.x)*(line2.start.x*line2.end.y-line2.start.y*line2.end.x))/((line1.start.x-line1.end.x)*(line2.start.y-line2.end.y)-(line1.start.y-line1.end.y)*(line2.start.x-line2.end.x))
+  var y=((line1.start.x*line1.end.y-line1.start.y*line1.end.x)*(line2.start.y-line2.end.y)-(line1.start.y-line1.end.y)*(line2.start.x*line2.end.y-line2.start.y*line2.end.x))/((line1.start.x-line1.end.x)*(line2.start.y-line2.end.y)-(line1.start.y-line1.end.y)*(line2.start.x-line2.end.x))
+  if (isNaN(x)||isNaN(y)) {
+    return false
+  } else {
+    if (line1.start.x>=line1.end.x) {
+      if (!(line1.end.x<=x&&x<=line1.start.x)) {return false}
+    } else {
+      if (!(line1.start.x<=x&&x<=line1.end.x)) {return false}
+    }
+    if (line1.start.y>=line1.end.y) {
+      if (!(line1.end.y<=y&&y<=line1.start.y)) {return false}
+    } else {
+      if (!(line1.start.y<=y&&y<=line1.end.y)) {return false}
+    }
+    if (line2.start.x>=line2.end.x) {
+      if (!(line2.end.x<=x&&x<=line2.start.x)) {return false}
+    } else {
+      if (!(line2.start.x<=x&&x<=line2.end.x)) {return false}
+    }
+    if (line2.start.y>=line2.end.y) {
+      if (!(line2.end.y<=y&&y<=line2.start.y)) {return false}
+    } else {
+      if (!(line2.start.y<=y&&y<=line2.end.y)) {return false}
+    }
+  }
+  return true
 }
 
 /*
@@ -121,7 +155,8 @@ class Game {
     this.step = 1/60
     this.player = new Character()
     this.enemy = new Character()
-    this.enemy.timer = 1
+    this.enemy.timer = 2
+    this.enemy.speed = 1000
   }
   launch(currentTime){
     if (this.previousTime) {
@@ -139,10 +174,36 @@ class Game {
     this.draw()
   }
   simulate(dt){
+    // Process existing attacks
+    for (let i = 0; i < attacks.length; i++){
+      let attack = attacks[i]
+      switch (attack.status) {
+      case 'scheduled':
+        attack.status = 'active'
+        break
+      case 'active':
+        // Block logic
+        for (let j = i+1; j < attacks.length; j++) {
+          let block = attacks[j]
+          if (block.target != attack.target && lineIntersect(attack, block)) {
+            attack.status = 'blocked'
+            block.status = 'blocking'
+          }
+        }
+        // If time is over and not blocked
+        if (attack.end.time < new Date) {
+          attack.status = 'success'
+        }
+        break
+      }
+    }
+    // Enemy AI
     if (this.enemy.timer > 0) {
       this.enemy.timer -= dt
       return
     }
+    // Add enemy attack
+
     const attack = new Attack('player')
     attack.updateStartPoint({
       pageX: 50,
@@ -151,28 +212,55 @@ class Game {
     attack.updateEndPoint({
       pageX: 200,
       pageY: 400,
-    })
+    }, new Date((new Date()).getTime() + this.enemy.speed))
+    attack.status = 'scheduled'
     attacks.push(attack)
-    this.enemy.timer = 1
+    this.enemy.timer = 5
   }
   draw(){
     this.context.clearRect(0, 0, canvas.width, canvas.height)
     this.context.drawImage(enemyImage, 400, 0, 540, 960, 0, 0, 320, 568)
 
     attacks.forEach((attack) => {
-      this.context.save()
-      this.context.globalAlpha = attack.alpha
-      this.context.lineWidth = 4
-      this.context.fillStyle = attack.target === 'player' ? 'red' : 'black'
-      this.context.beginPath()
-      this.context.moveTo(attack.start.x, attack.start.y)
-      this.context.lineTo(attack.end.x, attack.end.y)
-      this.context.stroke()
-
-      attack.alpha -=0.1 // Make alpha depend on time or duration of attack
-      this.context.restore()
+      switch (attack.status) {
+      case 'success':
+      case 'blocking':
+        this.drawAttack(attack)
+        attacks = attacks.filter((attack) => attack.alpha > 0)
+        break
+      case 'active':
+        this.drawPath(attack)
+        break
+      }
     })
-    attacks = attacks.filter((attack) => attack.alpha > 0)
+  }
+  drawAttack(attack){
+    this.context.save()
+    this.context.globalAlpha = attack.alpha
+    this.context.lineWidth = 4
+    this.context.strokeStyle = attack.target === 'player' ? 'red' : 'black'
+    this.context.fillStyle = attack.target === 'player' ? 'red' : 'black'
+    this.context.beginPath()
+    this.context.moveTo(attack.start.x, attack.start.y)
+    this.context.lineTo(attack.end.x, attack.end.y)
+    this.context.stroke()
+
+    attack.alpha -= 0.06
+    this.context.restore()
+  }
+  drawPath(attack){
+    this.context.save()
+    this.context.lineWidth = 4
+    this.context.strokeStyle = attack.target === 'player' ? 'red' : 'black'
+    this.context.fillStyle = attack.target === 'player' ? 'red' : 'black'
+    this.context.beginPath()
+    this.context.moveTo(attack.start.x, attack.start.y)
+    this.context.lineTo(
+      attack.start.x + attack.delta.x*(new Date - attack.start.time)/(attack.delta.time),
+      attack.start.y + attack.delta.y*(new Date - attack.start.time)/(attack.delta.time))
+    this.context.stroke()
+
+    this.context.restore()
   }
 }
 
@@ -183,7 +271,6 @@ function startup(canvas) {
   canvas.addEventListener('touchend', handleEnd, false)
   canvas.addEventListener('touchcancel', handleCancel, false)
 }
-
 function handleStart(evt) {
   evt.preventDefault()
   var touches = evt.changedTouches
