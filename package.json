@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c",
-    "watch": "rollup -w -c"
+    "watch": "rollup -w -c",
+    "dev": "npm build && npm run watch"
   },
   "author": "",
   "license": "ISC",

@@ -1,7 +1,7 @@
 export default class Character{
-  constructor(){
+  constructor(name){
     this.hp = 100
-    this.attackQueue = []
+    this.name = name
   }
   update(){
 

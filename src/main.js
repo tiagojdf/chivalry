@@ -51,8 +51,6 @@ const ongoingTouches = new Array()
 // enemyImage.src = './assets/enemy.jpg';
 let  attacks = []
 
-startup(canvas)
-
 class Game {
   constructor(canvas, context){
     this.canvas = canvas
@@ -60,10 +58,15 @@ class Game {
     this.accumulator = 0
     this.previousTime = 0
     this.step = 1/60
-    this.player = new Character()
-    this.enemy = new Character()
+    this.player = new Character('player')
+    this.enemy = new Character('enemy')
     this.enemy.timer = 2
     this.enemy.speed = 1000
+  }
+  startup(){
+    this.canvas.addEventListener('touchstart', (evt) => handleStart(this.enemy, evt), false)
+    this.canvas.addEventListener('touchend', handleEnd.bind(this), false)
+    this.canvas.addEventListener('touchcancel', handleCancel.bind(this), false)
   }
   launch(currentTime){
     if (this.previousTime) {
@@ -102,6 +105,8 @@ class Game {
         // If time is over and not blocked
         if (attack.end.time < new Date) {
           attack.status = 'success'
+          attack.target.hp -= attack.intensity/Math.sqrt(this.canvas.width**2 + this.canvas.height**2)*100
+          console.log(attack.target.name, attack.target.hp)
         }
         break
       }
@@ -113,7 +118,7 @@ class Game {
     }
     // Add enemy attack
 
-    const attack = new Attack('player')
+    const attack = new Attack(this.player)
     attack.updateStartPoint({
       pageX: 50,
       pageY: 50,
@@ -148,8 +153,8 @@ class Game {
     this.context.save()
     this.context.globalAlpha = attack.alpha
     this.context.lineWidth = 4
-    this.context.strokeStyle = attack.target === 'player' ? 'red' : 'black'
-    this.context.fillStyle = attack.target === 'player' ? 'red' : 'black'
+    this.context.strokeStyle = attack.target === this.player ? 'red' : 'black'
+    this.context.fillStyle = attack.target === this.player ? 'red' : 'black'
     this.context.beginPath()
     this.context.moveTo(attack.start.x, attack.start.y)
     this.context.lineTo(attack.end.x, attack.end.y)
@@ -161,8 +166,8 @@ class Game {
   drawPath(attack){
     this.context.save()
     this.context.lineWidth = 4
-    this.context.strokeStyle = attack.target === 'player' ? 'red' : 'black'
-    this.context.fillStyle = attack.target === 'player' ? 'red' : 'black'
+    this.context.strokeStyle = attack.target === this.player ? 'red' : 'black'
+    this.context.fillStyle = attack.target === this.player ? 'red' : 'black'
     this.context.beginPath()
     this.context.moveTo(attack.start.x, attack.start.y)
     this.context.lineTo(
@@ -175,18 +180,14 @@ class Game {
 }
 
 const game = new Game(canvas, ctx)
+game.startup()
 game.launch()
-function startup(canvas) {
-  canvas.addEventListener('touchstart', handleStart, false)
-  canvas.addEventListener('touchend', handleEnd, false)
-  canvas.addEventListener('touchcancel', handleCancel, false)
-}
-function handleStart(evt) {
-  evt.preventDefault()
+
+function handleStart(target, evt) {
   var touches = evt.changedTouches
 
   for (var i = 0; i < touches.length; i++) {
-    ongoingTouches.push(startAttack(touches[i]))
+    ongoingTouches.push(startAttack(target, touches[i]))
   }
 }
 
@@ -202,7 +203,6 @@ function handleEnd(evt) {
 
       const attack = updateTouch(ongoingTouches[idx], touches[i])
       attack.alpha = 1
-      attack.target = 'opponent'
       attacks.push(attack)
       ongoingTouches.splice(idx, 1)  // remove it; we're done
     } else {
@@ -222,8 +222,8 @@ function handleCancel(evt) {
 
 // HELPER FUNCTIONS
 
-function startAttack(touch) {
-  const attack = new Attack('opponent')
+function startAttack(target, touch) {
+  const attack = new Attack(target)
   attack.updateStartPoint(touch)
   attack.identifier = touch.identifier
   return attack

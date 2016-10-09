@@ -1,5 +1,5 @@
 export default {
   entry: 'src/main.js',
-  dest: 'dist/build.js',
+  dest: 'dist/bundle.js',
   sourceMap: 'inline',
 }
