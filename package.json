@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rollup src/main.js --output dist/bundle.js",
-    "watch": "./node_modules/rollup/bin/rollup -w --input src/main.js --output dist/bundle.js"
+    "build": "rollup -c",
+    "watch": "rollup -w -c"
   },
   "author": "",
   "license": "ISC",

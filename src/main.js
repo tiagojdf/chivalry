@@ -93,7 +93,9 @@ class Game {
         for (let j = i+1; j < attacks.length; j++) {
           let block = attacks[j]
           if (block.target != attack.target && lineIntersect(attack, block)) {
+            console.log('block');
             attack.status = 'blocked'
+            attack.end.time = new Date
             block.status = 'blocking'
           }
         }
@@ -132,6 +134,7 @@ class Game {
       switch (attack.status) {
       case 'success':
       case 'blocking':
+      case 'blocked':
         this.drawAttack(attack)
         attacks = attacks.filter((attack) => attack.alpha > 0)
         break
