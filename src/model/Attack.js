@@ -1,10 +1,10 @@
 /*
- * Attacks can be scheduled, active, blocked, success
+ * Attacks can be active, blocked, success
  */
 export default class Attack{
   constructor(target){
     this.target = target
-    this.status = 'scheduled'
+    this.status = 'active'
     this.alpha = 1
     this.start = {
       x: undefined,
@@ -33,18 +33,18 @@ export default class Attack{
   get duration(){
     return this.delta.time
   }
-  updateStartPoint(touch, time){
+  updateStartPoint({x, y, time = new Date}){
     this.start = {
-      x: touch.pageX,
-      y: touch.pageY,
-      time: time || new Date,
+      x,
+      y,
+      time: time,
     }
   }
-  updateEndPoint(touch, time){
+  updateEndPoint({x, y, time = new Date}){
     this.end = {
-      x: touch.pageX,
-      y: touch.pageY,
-      time: time || new Date,
+      x,
+      y,
+      time: time,
     }
   }
 }

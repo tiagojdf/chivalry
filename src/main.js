@@ -1,35 +1,42 @@
 /*
  * TODO Check Mousetrap and Hammerjs
- *
- * Design a proper target system
  */
 
 /*
- * Draw a static enemy as background
- * Draw cut as it is finished, scale it up and then make it fade -> Draw cut as curvy line ?
- * Draw enemy line of attack
- * Draw enemy at
+ * V 0.1
+ * Add health bars (player and enemy)
+ * Add enemy block
+ *
+ * V 0.2
+ * Add enemy hit box
+ * Add level logic on Win
+ * Draw cut as curvy line ?
  */
 
  /*
   * PLAYER
   *
-  * Add life
   * Draw life bar
   * Add stamina
   * Draw stamina bar
-  *
-  * Defense -> calculate damage when defense is not strong enough
   */
+
+ /*
+  * Defense
+  *
+  * calculate damage when defense is not strong enough
+  */
+
 
 /*
  * ENEMY
  *
- * Make enemy attack once per second
- * Draw enemy line of attack
- * Draw enemy attack -> make reusable function for drawing attack given start, end point and color
- * Calculate damage caused when not blocked
  * Make enemy defend
+ * Make enemy attack from random position
+ * Add AI for attack pattern
+ *  - Random attack time at first
+ *  - Random chance to block at first
+ *
  */
 
 /*
@@ -42,6 +49,7 @@
  */
 import { enemyImage } from './assets/enemyImage'
 import Character from './Character'
+import Enemy from './Enemy'
 import Attack from './model/Attack'
 import lineIntersect from './tools/lineIntersect'
 const canvas = document.getElementById('canvas')
@@ -58,9 +66,7 @@ class Game {
     this.previousTime = 0
     this.step = 1/60
     this.player = new Character('player')
-    this.enemy = new Character('enemy')
-    this.enemy.timer = 2
-    this.enemy.speed = 1000
+    this.enemy = new Enemy('enemy', 100, 1000)
     this.ongoingTouches = []
   }
   startup(){
@@ -70,6 +76,7 @@ class Game {
   }
   launch(currentTime){
     if (this.state === 'lost') return
+    if (this.state === 'win') return
 
     if (this.previousTime) {
       this.update((currentTime - this.previousTime) / 1000)
@@ -90,15 +97,11 @@ class Game {
     for (let i = 0; i < attacks.length; i++){
       let attack = attacks[i]
       switch (attack.status) {
-      case 'scheduled':
-        attack.status = 'active'
-        break
       case 'active':
         // Block logic
         for (let j = i+1; j < attacks.length; j++) {
           let block = attacks[j]
           if (block.target != attack.target && lineIntersect(attack, block)) {
-            console.log('block');
             attack.status = 'blocked'
             attack.end.time = new Date
             block.status = 'blocking'
@@ -113,27 +116,16 @@ class Game {
         break
       }
     }
-    if(this.player.hp <= 0){
-      this.gameOver()
-    }
+    if (this.player.hp <= 0) this.gameOver()
+    if (this.enemy.hp <= 0) this.win()
     // Enemy AI
     if (this.enemy.timer > 0) {
       this.enemy.timer -= dt
       return
     }
     // Add enemy attack
-    const attack = new Attack(this.player)
-    attack.updateStartPoint({
-      pageX: 50,
-      pageY: 50,
-    })
-    attack.updateEndPoint({
-      pageX: 200,
-      pageY: 400,
-    }, new Date((new Date()).getTime() + this.enemy.speed))
-    attack.status = 'scheduled'
-    attacks.push(attack)
-    this.enemy.timer = 5
+    attacks.push(this.enemy.attack(this.player))
+    this.enemy.timer = Math.ceil(Math.random() * 5)
   }
   restart(){
     this.player.hp = 100
@@ -148,16 +140,13 @@ class Game {
   gameOver(){
     this.state = 'lost'
   }
+  win(){
+    this.state = 'win'
+  }
   // Drawing methods
   draw(){
-    if (this.state === 'lost') {
-      this.context.textAlign = 'center'
-      this.context.font = '48px serif'
-      this.context.fillText('Game Over', this.canvas.width / 2, this.canvas.height / 2)
-      this.context.font = 'bold 24px serif'
-      this.context.fillText('Touch the screen to restart', this.canvas.width/2, this.canvas.height/2 + 50)
-      return
-    }
+    if (this.state === 'lost') return this.drawMainText('You lose!', 'Touch the screen to restart')
+    if (this.state === 'win') return this.drawMainText('You win!', 'Touch the screen to restart')
 
     this.context.clearRect(0, 0, canvas.width, canvas.height)
     this.context.drawImage(enemyImage, 400, 0, 540, 960, 0, 0, 320, 568)
@@ -204,6 +193,13 @@ class Game {
 
     this.context.restore()
   }
+  drawMainText(title, subtitle){
+    this.context.textAlign = 'center'
+    this.context.font = '48px serif'
+    this.context.fillText(title, this.canvas.width / 2, this.canvas.height / 2)
+    this.context.font = 'bold 24px serif'
+    this.context.fillText(subtitle, this.canvas.width/2, this.canvas.height/2 + 50)
+  }
 }
 
 const game = new Game(canvas, ctx)
@@ -212,6 +208,7 @@ game.launch()
 
 function handleStart(evt) {
   if (this.state === 'lost') this.restart()
+  if (this.state === 'win') this.restart()
 
   var touches = evt.changedTouches
 
@@ -252,14 +249,20 @@ function handleCancel(evt) {
 
 function startAttack(target, touch) {
   const attack = new Attack(target)
-  attack.updateStartPoint(touch)
+  attack.updateStartPoint({
+    x: touch.pageX,
+    y: touch.pageY,
+  })
   attack.identifier = touch.identifier
   return attack
 }
 
 function updateTouch(attack, touch) {
   if (attack.identifier !== touch.identifier) return
-  attack.updateEndPoint(touch)
+  attack.updateEndPoint({
+    x: touch.pageX,
+    y: touch.pageY,
+  })
   return attack
 }
 
