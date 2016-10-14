@@ -4,7 +4,7 @@
 export default class Attack{
   constructor(target){
     this.target = target
-    this.status = 'active'
+    this.status = 'scheduling'
     this.alpha = 1
     this.start = {
       x: undefined,

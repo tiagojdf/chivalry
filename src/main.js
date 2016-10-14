@@ -93,6 +93,16 @@ class Game {
     this.draw()
   }
   simulate(dt){
+    // Enemy AI
+    this.enemy.attackTimer -= dt
+    if (this.enemy.attackTimer <= 0) {
+      attacks.push(this.enemy.attack(this.player))
+    }
+    this.enemy.defendTimer -= dt
+    if (this.enemy.defendTimer <= 0) {
+      const attack = attacks.find(attack => attack.target === this.enemy && attack.status === 'active')
+      if (attack) attacks.push(this.enemy.defend(this.player, attack))
+    }
     // Process existing attacks
     for (let i = 0; i < attacks.length; i++){
       let attack = attacks[i]
@@ -102,9 +112,9 @@ class Game {
         for (let j = i+1; j < attacks.length; j++) {
           let block = attacks[j]
           if (block.target != attack.target && lineIntersect(attack, block)) {
-            attack.status = 'blocked'
             attack.end.time = new Date
-            block.status = 'blocking'
+            attack.status = 'blocked' // needed for animation
+            block.status = 'blocking' // needed for animation
           }
         }
         // If time is over and not blocked
@@ -116,16 +126,9 @@ class Game {
         break
       }
     }
+    // Check if we need to change state
     if (this.player.hp <= 0) this.gameOver()
     if (this.enemy.hp <= 0) this.win()
-    // Enemy AI
-    if (this.enemy.timer > 0) {
-      this.enemy.timer -= dt
-      return
-    }
-    // Add enemy attack
-    attacks.push(this.enemy.attack(this.player))
-    this.enemy.timer = Math.ceil(Math.random() * 5)
   }
   restart(){
     this.player.hp = 100
@@ -263,6 +266,7 @@ function updateTouch(attack, touch) {
     x: touch.pageX,
     y: touch.pageY,
   })
+  attack.status = 'active'
   return attack
 }
 
