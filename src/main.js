@@ -98,11 +98,12 @@ class Game {
     if (this.enemy.attackTimer <= 0) {
       attacks.push(this.enemy.attack(this.player))
     }
-    this.enemy.defendTimer -= dt
-    if (this.enemy.defendTimer <= 0) {
-      const attack = attacks.find(attack => attack.target === this.enemy && attack.status === 'active')
-      if (attack) attacks.push(this.enemy.defend(this.player, attack))
-    }
+    const attackEnemy = attacks.find(attack => attack.target === this.enemy && attack.status === 'active')
+    const attackPlayer = attacks.find(attack => attack.target === this.player && attack.status === 'active')
+    if (!attackPlayer && attackEnemy && this.enemy.willDefend()) attacks.push(this.enemy.defend(this.player, attackEnemy))
+    // this.enemy.defendTimer -= dt
+    // if (this.enemy.defendTimer <= 0) {
+    // }
     // Process existing attacks
     for (let i = 0; i < attacks.length; i++){
       let attack = attacks[i]
@@ -120,13 +121,14 @@ class Game {
         // If time is over and not blocked
         if (attack.end.time < new Date) {
           attack.status = 'success'
-          attack.target.hp -= attack.intensity/Math.sqrt(this.canvas.width**2 + this.canvas.height**2)*100
+          attack.target.hurt(attack.intensity/Math.sqrt(this.canvas.width**2 + this.canvas.height**2)*100)
           console.log(attack.target.name, attack.target.hp)
         }
         break
       }
     }
     // Check if we need to change state
+
     if (this.player.hp <= 0) this.gameOver()
     if (this.enemy.hp <= 0) this.win()
   }
@@ -210,6 +212,7 @@ game.startup()
 game.launch()
 
 function handleStart(evt) {
+  evt.preventDefault()
   if (this.state === 'lost') this.restart()
   if (this.state === 'win') this.restart()
 

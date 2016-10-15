@@ -3,6 +3,9 @@ export default class Character{
     this.hp = 100
     this.name = name
   }
+  hurt(hp){
+    this.hp -= hp
+  }
   update(){
 
   }
