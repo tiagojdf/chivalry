@@ -1,3 +1,4 @@
+/* global ga */
 /*
  * TODO Check Mousetrap and Hammerjs
  */
@@ -116,13 +117,15 @@ class Game {
             attack.end.time = new Date
             attack.status = 'blocked' // needed for animation
             block.status = 'blocking' // needed for animation
+            ga('send', 'event', 'game', 'block', null, attack.target.name)
           }
         }
         // If time is over and not blocked
         if (attack.end.time < new Date) {
           attack.status = 'success'
-          attack.target.hurt(attack.intensity/Math.sqrt(this.canvas.width**2 + this.canvas.height**2)*100)
-          console.log(attack.target.name, attack.target.hp)
+          const damage = attack.intensity/Math.sqrt(this.canvas.width**2 + this.canvas.height**2)*100
+          attack.target.hurt(damage)
+          ga('send', 'event', 'game', 'hurt', attack.target.name, attack.target.hp)
         }
         break
       }
@@ -143,9 +146,11 @@ class Game {
     this.launch()
   }
   gameOver(){
+    ga('send', 'event', 'game', 'lost', null, null)
     this.state = 'lost'
   }
   win(){
+    ga('send', 'event', 'game', 'win', null, null)
     this.state = 'win'
   }
   // Drawing methods
