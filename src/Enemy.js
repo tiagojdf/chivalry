@@ -6,7 +6,7 @@ export default class Enemy{
     this.hp = hp || 100
     this.attackTimer = 2
     // this.defendTimer = 3
-    this.defensiveProbability = 0.99
+    this.defensiveProbability = 1
     this.speed = speed || 1000
     this.attackMoves = [
       {
@@ -48,7 +48,6 @@ export default class Enemy{
   }
   attack(target){
     this.defensiveProbability = Math.max(0.5, this.defensiveProbability - 0.1)
-    console.log(this.defensiveProbability)
     this.attackTimer = Math.ceil(Math.random() * 3)
 
     const attack = new Attack(target)
@@ -64,16 +63,12 @@ export default class Enemy{
   }
   hurt(hp){
     this.hp -= hp
-    this.defensiveProbability = 0.99
-    console.log('reset defense', this.defensiveProbability);
+    this.defensiveProbability = 1
   }
   willDefend(){
     return this.defensiveProbability >= Math.random()
   }
   defend(target, attack){
-    console.log(this.defensiveProbability, attack);
-    // this.defendTimer = Math.ceil(Math.random() * 3)
-
     const midpoint = {
       x: (attack.start.x + attack.end.x) / 2,
       y: (attack.start.y + attack.end.y) / 2,

@@ -121,7 +121,7 @@ class Game {
           }
         }
         // If time is over and not blocked
-        if (attack.end.time < new Date) {
+        if (attack.end.time < new Date && attack.status === 'active') {
           attack.status = 'success'
           const damage = attack.intensity/Math.sqrt(this.canvas.width**2 + this.canvas.height**2)*100
           attack.target.hurt(damage)
