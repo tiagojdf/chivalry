@@ -1,12 +1,8 @@
 /* global ga */
-/*
- * TODO Check Mousetrap and Hammerjs
- */
 
 /*
  * V 0.1
  * Add health bars (player and enemy)
- * Add enemy block
  *
  * V 0.2
  * Add enemy hit box
@@ -160,6 +156,8 @@ class Game {
 
     this.context.clearRect(0, 0, canvas.width, canvas.height)
     this.context.drawImage(enemyImage, 400, 0, 540, 960, 0, 0, 320, 568)
+    this.player.drawLifeBar(this.canvas, this.context, { x: 20, y: this.canvas.height - 40 })
+    this.enemy.drawLifeBar(this.canvas, this.context, { x: 20, y: 20 })
 
     attacks.forEach((attack) => {
       switch (attack.status) {

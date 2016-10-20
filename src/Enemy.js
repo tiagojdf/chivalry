@@ -1,9 +1,11 @@
 import Attack from './model/Attack'
+import { drawLifeBar } from './tools/draw'
 
 export default class Enemy{
   constructor(name, hp, speed){
     this.name = name || 'enemy'
     this.hp = hp || 100
+    this.maxHp = hp || 100
     this.attackTimer = 2
     // this.defendTimer = 3
     this.defensiveProbability = 1
@@ -86,5 +88,8 @@ export default class Enemy{
     block.status = 'active'
 
     return block
+  }
+  drawLifeBar(canvas, context, {x, y}){
+    drawLifeBar(canvas, context, {x, y}, this)
   }
 }
